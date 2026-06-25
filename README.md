@@ -1,4 +1,4 @@
-# 💬 Basic Chat Program
+﻿# 💬 Basic Chat Program
 
 A real-time web chat application built with **Node.js**, **Express**, and **Socket.io**, featuring glassmorphism UI design.
 
