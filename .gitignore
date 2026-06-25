@@ -1,0 +1,12 @@
+# Dependency directories
+node_modules/
+
+# Local environment config
+.env
+
+# SQLite Database
+*.db
+chat.db
+
+# User uploaded files
+uploads/

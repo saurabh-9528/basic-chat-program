@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherChat — Realtime Space</title>
+  <meta name="description" content="A premium real-time chat application with multiple rooms, typing indicators, and beautiful glassmorphism design.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- highlight.js for code syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+</head>
+<body>
+  <!-- Atmospheric Background Blobs -->
+  <div class="bg-glow blob-1"></div>
+  <div class="bg-glow blob-2"></div>
+  <div class="bg-glow blob-3"></div>
+
+  <!-- Login/Username Modal Overlay -->
+  <div id="join-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="app-logo">
+          <div class="logo-icon"></div>
+          <h1>AetherChat</h1>
+        </div>
+        <p id="join-modal-description">Enter a username to join the real-time space.</p>
+      </div>
+
+      <!-- Authentication Tabs -->
+      <div class="form-tabs">
+        <button type="button" id="tab-login" class="form-tab active">Log In</button>
+        <button type="button" id="tab-register" class="form-tab">Register</button>
+      </div>
+
+      <form id="join-form">
+        <div class="input-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="e.g. Neo, Trinity..." maxlength="20" required autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter password..." required autocomplete="off">
+          <span id="password-help-text" class="input-help hidden">For new accounts: min 6 chars, 1 uppercase, 1 number, 1 special char.</span>
+        </div>
+        <div class="input-group">
+          <label for="room-select">Choose Room</label>
+          <select id="room-select">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+        <div id="join-error" class="error-msg hidden"></div>
+        <button type="submit" id="join-btn" class="btn-primary">Enter Space</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- User Profile Modal Overlay -->
+  <div id="profile-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="app-logo">
+          <div class="logo-icon"></div>
+          <h1>User Profile</h1>
+        </div>
+        <p>Update your status, bio, and avatar color.</p>
+      </div>
+      <form id="profile-form">
+        <div class="input-group">
+          <label for="profile-status">Status</label>
+          <select id="profile-status">
+            <option value="online">🟢 Available</option>
+            <option value="away">🟡 Away</option>
+            <option value="busy">🔴 Busy</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="profile-bio">Bio</label>
+          <textarea id="profile-bio" class="profile-textarea" placeholder="Tell other members about yourself..." maxlength="150" rows="3"></textarea>
+        </div>
+        <div class="input-group">
+          <label for="profile-color">Avatar Theme Color</label>
+          <input type="color" id="profile-color" class="profile-color-input">
+        </div>
+        <div id="profile-error" class="error-msg hidden"></div>
+        <div style="display: flex; gap: 12px; margin-top: 10px;">
+          <button type="button" id="profile-cancel-btn" class="btn-primary" style="background: rgba(255, 255, 255, 0.08); color: var(--text-main); box-shadow: none; margin-top: 0;">Cancel</button>
+          <button type="submit" id="profile-save-btn" class="btn-primary" style="margin-top: 0; background: var(--primary-gradient);">Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Forward Message Modal Overlay -->
+  <div id="forward-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="app-logo">
+          <div class="logo-icon"></div>
+          <h1>Forward Message</h1>
+        </div>
+        <p>Select a room or active member to forward this message.</p>
+      </div>
+      <div class="forward-list-container">
+        <div class="forward-section">
+          <h4>Rooms</h4>
+          <ul id="forward-rooms-list" class="forward-target-list">
+            <!-- Room list populated dynamically -->
+          </ul>
+        </div>
+        <div class="forward-section">
+          <h4>Active Members (DMs)</h4>
+          <ul id="forward-users-list" class="forward-target-list">
+            <!-- Active users list populated dynamically -->
+          </ul>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; margin-top: 15px; width: 100%;">
+        <button type="button" id="forward-cancel-btn" class="btn-primary" style="background: rgba(255, 255, 255, 0.08); color: var(--text-main); box-shadow: none; margin-top: 0; flex: 1;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Room Modal Overlay -->
+  <div id="create-room-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="app-logo">
+          <div class="logo-icon"></div>
+          <h1>Create Chat Room</h1>
+        </div>
+        <p>Set up a new space for discussion.</p>
+      </div>
+      <form id="create-room-form">
+        <div class="input-group">
+          <label for="room-name-input">Room Name</label>
+          <input type="text" id="room-name-input" placeholder="e.g. gaming, coffee..." maxlength="20" required autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="room-desc-input">Description</label>
+          <input type="text" id="room-desc-input" placeholder="Brief room description..." maxlength="150" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="room-password-input">Password (Optional)</label>
+          <input type="password" id="room-password-input" placeholder="Leave empty for public room..." autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="room-capacity-input">Max Capacity</label>
+          <input type="number" id="room-capacity-input" placeholder="100" min="2" max="1000" value="100">
+        </div>
+        <div id="create-room-error" class="error-msg hidden"></div>
+        <div style="display: flex; gap: 12px; margin-top: 15px;">
+          <button type="button" id="create-room-cancel-btn" class="btn-primary" style="background: rgba(255, 255, 255, 0.08); color: var(--text-main); box-shadow: none; margin-top: 0;">Cancel</button>
+          <button type="submit" id="create-room-submit-btn" class="btn-primary" style="margin-top: 0; background: var(--primary-gradient);">Create Room</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Room Password Prompt Modal Overlay -->
+  <div id="room-password-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="app-logo">
+          <div class="logo-icon">🔑</div>
+          <h1>Password Protected</h1>
+        </div>
+        <p>This room requires a password to join.</p>
+      </div>
+      <form id="room-password-form">
+        <div class="input-group">
+          <label for="join-room-password-input">Password</label>
+          <input type="password" id="join-room-password-input" placeholder="Enter room password..." required autocomplete="off">
+        </div>
+        <div id="room-password-error" class="error-msg hidden"></div>
+        <div style="display: flex; gap: 12px; margin-top: 15px;">
+          <button type="button" id="room-password-cancel-btn" class="btn-primary" style="background: rgba(255, 255, 255, 0.08); color: var(--text-main); box-shadow: none; margin-top: 0;">Cancel</button>
+          <button type="submit" id="room-password-submit-btn" class="btn-primary" style="margin-top: 0; background: var(--primary-gradient);">Join Room</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Chat Application UI (Hidden until joined) -->
+  <div id="app-container" class="app-container hidden">
+    <!-- Sidebar Overlay for Mobile -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">
+          <div class="logo-icon"></div>
+          <h2>AetherChat</h2>
+        </div>
+      </div>
+
+      <!-- Rooms Panel -->
+      <div class="sidebar-section">
+        <div class="section-header">
+          <h3>Chat Rooms</h3>
+          <button id="open-create-room-btn" class="btn-icon" title="Create Room">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+        <ul id="rooms-list" class="rooms-list">
+          <!-- Populated dynamically -->
+        </ul>
+      </div>
+
+      <!-- Active Users Panel -->
+      <div class="sidebar-section users-section">
+        <div class="section-header">
+          <h3>Active Members</h3>
+          <span id="user-count" class="badge">0</span>
+        </div>
+        <ul id="users-list" class="users-list">
+          <!-- Populated dynamically -->
+        </ul>
+      </div>
+
+      <!-- User Profile (Bottom) -->
+      <div class="user-profile">
+        <div id="self-avatar" class="avatar">U</div>
+        <div class="user-info">
+          <h4 id="self-username">User</h4>
+          <span class="status-indicator online">Online</span>
+        </div>
+        <button id="logout-btn" class="btn-logout" title="Log Out">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <main class="chat-area">
+      <!-- Chat Header -->
+      <header class="chat-header">
+        <button id="sidebar-toggle" class="sidebar-toggle-btn" aria-label="Toggle Sidebar">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="room-info">
+          <span id="current-room-icon" class="current-room-icon">🌌</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h2 id="current-room-name">Lobby</h2>
+              <button id="delete-room-btn" class="btn-delete hidden" title="Delete Room">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+            <p id="room-description">Welcome to the main entry lobby of AetherChat.</p>
+          </div>
+        </div>
+        
+        <div class="chat-header-actions">
+          <button id="search-toggle-btn" class="header-action-btn" title="Search messages">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+          <button id="calendar-btn" class="header-action-btn" title="Jump to date">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </button>
+          <button id="pins-toggle-btn" class="header-action-btn" title="Pinned messages">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="17" x2="12" y2="22"></line>
+              <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.26a2 2 0 0 1-.78 1.24l-2.78 3.5A2 2 0 0 0 5 15.24V17z"></path>
+            </svg>
+          </button>
+          <input type="date" id="jump-date-picker" class="hidden-date-picker" style="display: none;">
+        </div>
+      </header>
+
+      <!-- Pinned Messages Panel (Hidden by default) -->
+      <div id="pinned-messages-panel" class="pinned-messages-panel hidden">
+        <div class="pins-header">
+          <h3>📌 Pinned Messages</h3>
+          <button id="close-pins-btn" class="close-pins-btn" title="Close">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div id="pinned-messages-list" class="pinned-messages-list">
+          <!-- Pinned messages populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Search Sub-header Panel (Hidden by default) -->
+      <div id="search-panel" class="search-panel hidden">
+        <div class="search-input-wrapper">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon-inside">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="search-input" placeholder="Search messages in this room..." autocomplete="off">
+          <button id="clear-search-text-btn" class="clear-search-text-btn" title="Clear search text">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Status Bar (Hidden by default) -->
+      <div id="filter-status-bar" class="filter-status-bar hidden">
+        <span id="filter-status-text">Showing search results</span>
+        <button id="clear-filter-btn" class="clear-filter-btn">
+          Clear Filter
+        </button>
+      </div>
+
+      <!-- Message History Container -->
+      <div id="messages-container" class="messages-container">
+        <!-- Messages populated dynamically -->
+      </div>
+
+      <!-- Typing Indicator -->
+      <div id="typing-indicator" class="typing-indicator hidden">
+        <span class="typing-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+        <span id="typing-text">Someone is typing...</span>
+      </div>
+
+      <!-- Chat Input Area -->
+      <footer class="chat-input-area">
+        <!-- Reply Indicator -->
+        <div id="reply-indicator" class="reply-indicator hidden">
+          <div class="reply-indicator-info">
+            <span class="reply-label">Replying to <span id="reply-username">user</span></span>
+            <p id="reply-text-preview" class="reply-text-preview">Original message preview...</p>
+          </div>
+          <button type="button" id="cancel-reply-btn" class="cancel-reply-btn" title="Cancel Reply">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Mentions Autocomplete Suggestions -->
+        <div id="mention-suggestions" class="mention-suggestions hidden"></div>
+
+        <!-- Upload Progress Indicator -->
+        <div id="upload-progress-container" class="upload-progress-container hidden">
+          <div class="upload-progress-info">
+            <span id="upload-filename">file.pdf</span>
+            <span id="upload-percentage">0%</span>
+          </div>
+          <div class="upload-progress-bar-wrapper">
+            <div id="upload-progress-bar" class="upload-progress-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <form id="chat-form">
+          <div class="input-container">
+            <button type="button" id="attach-btn" class="btn-attach" title="Attach file">
+              <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+              </svg>
+            </button>
+            <input type="file" id="file-input" style="display: none;" accept="image/*,video/*,application/pdf">
+            <input type="text" id="msg-input" placeholder="Type a message..." required autocomplete="off" maxlength="1000">
+          </div>
+          <button type="submit" class="btn-send">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Socket.io client script -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Client main logic -->
+  <script src="main.js"></script>
+</body>
+</html>
